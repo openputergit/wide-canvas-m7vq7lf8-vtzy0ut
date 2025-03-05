@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Waste Management - Jamnagar Municipal Corporation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1a4f70, #2d8fb5);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .glass {
+            background: var(--glass-bg);  
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+        }
+
+        .sidebar {
+            width: 280px;
+            transition: all 0.3s ease;
+        }
+
+        .card {
+            transition: transform 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                z-index: 50;
+                height: 100vh;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen">
+        <!-- Sidebar -->
+        <nav class="sidebar glass fixed h-full p-4" :class="{'active': showSidebar}">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-xl font-bold">Smart Waste</h1>
+                <button @click="toggleSidebar" class="md:hidden">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <a href="#" @click="setActiveTab('dashboard')" 
+                   class="flex items-center space-x-3 p-3 rounded-lg" 
+                   :class="{'bg-white/20': activeTab === 'dashboard'}">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" @click="setActiveTab('schedule')"
+                   class="flex items-center space-x-3 p-3 rounded-lg"
+                   :class="{'bg-white/20': activeTab === 'schedule'}">
+                    <i class="bi bi-calendar-check"></i>
+                    <span>Collection Schedule</span>
+                </a>
+                <a href="#" @click="setActiveTab('report')"
+                   class="flex items-center space-x-3 p-3 rounded-lg"
+                   :class="{'bg-white/20': activeTab === 'report'}">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span>Report Issue</span>
+                </a>
+                <a href="#" @click="setActiveTab('rewards')"
+                   class="flex items-center space-x-3 p-3 rounded-lg"
+                   :class="{'bg-white/20': activeTab === 'rewards'}">
+                    <i class="bi bi-trophy"></i>
+                    <span>Rewards</span>
+                </a>
+            </div>
+
+            <div class="absolute bottom-4 left-4 right-4">
+                <div class="p-4 glass rounded-lg text-center">
+                    <img :src="user.avatar" class="w-16 h-16 rounded-full mx-auto mb-2">
+                    <h3 class="font-semibold">{{user.name}}</h3>
+                    <p class="text-sm opacity-75">{{user.points}} Points</p>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="ml-0 md:ml-[280px] p-4">
+            <div class="flex justify-between items-center mb-6">
+                <button @click="toggleSidebar" class="md:hidden">
+                    <i class="bi bi-list text-2xl"></i>
+                </button>
+                <div class="flex items-center space-x-4">
+                    <button class="glass px-4 py-2 rounded-lg">
+                        <i class="bi bi-bell"></i>
+                    </button>
+                    <button @click="toggleTheme" class="glass px-4 py-2 rounded-lg">
+                        <i class="bi" :class="isDark ? 'bi-sun' : 'bi-moon'"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard -->
+            <div v-if="activeTab === 'dashboard'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass p-6 card">
+                    <h3 class="text-lg font-semibold mb-4">Next Collection</h3>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-2xl font-bold">Tomorrow</p>
+                            <p class="opacity-75">9:00 AM</p>
+                        </div>
+                        <i class="bi bi-truck text-3xl"></i>
+                    </div>
+                </div>
+
+                <div class="glass p-6 card">
+                    <h3 class="text-lg font-semibold mb-4">My Points</h3>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-2xl font-bold">{{user.points}}</p>
+                            <p class="opacity-75">Level {{user.level}}</p>
+                        </div>
+                        <i class="bi bi-star text-3xl"></i>
+                    </div>
+                </div>
+
+                <div class="glass p-6 card">
+                    <h3 class="text-lg font-semibold mb-4">Reports</h3>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-2xl font-bold">{{reports.length}}</p>
+                            <p class="opacity-75">This Month</p>
+                        </div>
+                        <i class="bi bi-flag text-3xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule -->
+            <div v-if="activeTab === 'schedule'" class="glass p-6">
+                <h2 class="text-xl font-bold mb-6">Collection Schedule</h2>
+                <div class="space-y-4">
+                    <div v-for="(schedule, index) in schedules" :key="index"
+                         class="flex items-center justify-between p-4 glass rounded-lg">
+                        <div>
+                            <h4 class="font-semibold">{{schedule.day}}</h4>
+                            <p class="text-sm opacity-75">{{schedule.time}}</p>
+                        </div>
+                        <span :class="schedule.status === 'Completed' ? 'text-green-400' : ''">
+                            {{schedule.status}}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Issue -->
+            <div v-if="activeTab === 'report'" class="glass p-6">
+                <h2 class="text-xl font-bold mb-6">Report an Issue</h2>
+                <form @submit.prevent="submitReport" class="space-y-4">
+                    <div>
+                        <label class="block mb-2">Issue Type</label>
+                        <select v-model="reportForm.type" class="w-full p-3 rounded-lg glass">
+                            <option>Missed Collection</option>
+                            <option>Improper Disposal</option>
+                            <option>Container Damage</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block mb-2">Description</label>
+                        <textarea v-model="reportForm.description" 
+                                 class="w-full p-3 rounded-lg glass"
+                                 rows="4"></textarea>
+                    </div>
+                    <div>
+                        <label class="block mb-2">Upload Image</label>
+                        <input type="file" @change="handleFileUpload" 
+                               accept="image/*"
+                               class="w-full p-3 rounded-lg glass">
+                    </div>
+                    <button type="submit" 
+                            class="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition"
+                            :disabled="loading">
+                        <i v-if="loading" class="bi bi-arrow-repeat loading"></i>
+                        <span v-else>Submit Report</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Rewards -->
+            <div v-if="activeTab === 'rewards'" class="glass p-6">
+                <h2 class="text-xl font-bold mb-6">Rewards & Achievements</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div v-for="(reward, index) in rewards" :key="index"
+                         class="glass p-4 rounded-lg card">
+                        <i :class="reward.icon + ' text-4xl mb-4'"></i>
+                        <h4 class="font-semibold">{{reward.title}}</h4>
+                        <p class="text-sm opacity-75 mb-4">{{reward.description}}</p>
+                        <button class="px-4 py-2 bg-blue-500 rounded-lg w-full"
+                                :disabled="user.points < reward.points">
+                            Redeem ({{reward.points}} points)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    showSidebar: false,
+                    isDark: false,
+                    activeTab: 'dashboard',
+                    loading: false,
+                    user: {
+                        name: 'John Doe',
+                        points: 1250,
+                        level: 3,
+                        avatar: 'https://api.dicebear.com/6.x/avataaars/svg?seed=John'
+                    },
+                    reports: [
+                        { id: 1, type: 'Missed Collection', status: 'Resolved' },
+                        { id: 2, type: 'Container Damage', status: 'Pending' }
+                    ],
+                    schedules: [
+                        { day: 'Monday', time: '9:00 AM', status: 'Completed' },
+                        { day: 'Wednesday', time: '9:00 AM', status: 'Pending' },
+                        { day: 'Friday', time: '9:00 AM', status: 'Pending' }
+                    ],
+                    rewards: [
+                        {
+                            title: 'Tax Rebate',
+                            description: 'Get 5% off on your next property tax',
+                            points: 1000,
+                            icon: 'bi bi-currency-dollar'
+                        },
+                        {
+                            title: 'Green Champion',
+                            description: 'Special badge for consistent recycling',
+                            points: 500,
+                            icon: 'bi bi-award'
+                        },
+                        {
+                            title: 'Extra Pickup',
+                            description: 'One free additional waste pickup',
+                            points: 300,
+                            icon: 'bi bi-truck'
+                        }
+                    ],
+                    reportForm: {
+                        type: '',
+                        description: '',
+                        file: null
+                    }
+                }
+            },
+            methods: {
+                toggleSidebar() {
+                    this.showSidebar = !this.showSidebar
+                },
+                toggleTheme() {
+                    this.isDark = !this.isDark
+                    // Add theme implementation
+                },
+                setActiveTab(tab) {
+                    this.activeTab = tab
+                    if (window.innerWidth < 768) {
+                        this.showSidebar = false
+                    }
+                },
+                handleFileUpload(event) {
+                    this.reportForm.file = event.target.files[0]
+                },
+                async submitReport() {
+                    this.loading = true
+                    try {
+                        // Simulate API call
+                        await new Promise(resolve => setTimeout(resolve, 2000))
+                        alert('Report submitted successfully!')
+                        this.reportForm = { type: '', description: '', file: null }
+                    } catch (error) {
+                        alert('Error submitting report')
+                    } finally {
+                        this.loading = false
+                    }
+                }
+            }
+        }).mount('#app')
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
